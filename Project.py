@@ -1154,3 +1154,18 @@ def fetch_liquidity_data(symbol):
 
         else:
             st.warning("⚠ Không có dữ liệu!")
+
+
+import streamlit as st
+import torch
+import transformers
+
+# Lấy phiên bản của torch và transformers
+torch_version = torch.__version__
+transformers_version = transformers.__version__
+
+# Hiển thị trên Streamlit
+st.title("🛠 Kiểm tra phiên bản thư viện")
+st.write(f"**Phiên bản PyTorch:** `{torch_version}`")
+st.write(f"**Phiên bản Transformers:** `{transformers_version}`")
+
