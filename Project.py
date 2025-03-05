@@ -1154,18 +1154,3 @@ def fetch_liquidity_data(symbol):
 
         else:
             st.warning("⚠ Không có dữ liệu!")
-
-import psutil
-import os
-import streamlit as st
-
-def get_memory_usage():
-    process = psutil.Process(os.getpid())  # Lấy tiến trình hiện tại
-    memory_usage = process.memory_info().rss / (1024 * 1024)  # Chuyển đổi sang MB
-    return memory_usage
-
-st.title("Theo dõi bộ nhớ trong Streamlit")
-
-# Hiển thị bộ nhớ hiện tại
-st.write(f"**Bộ nhớ đã sử dụng:** {get_memory_usage():.2f} MB")
-
