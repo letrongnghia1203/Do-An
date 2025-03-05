@@ -15,7 +15,7 @@ wordcloud
 deep-translator
 vaderSentiment
 gdown
-transformers
+transformers==4.48.2
 tf-keras
 gspread
 oauth2client
