@@ -19,3 +19,4 @@ transformers==4.48.2
 tf-keras
 gspread
 oauth2client
+torch
