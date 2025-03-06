@@ -13,17 +13,15 @@ from vnstock import Vnstock
 import concurrent.futures
 import re
 
-# 📌 **API Base URL (CafeF)**
 API_URL = "https://cafef.vn/du-lieu/ajax/mobile/smart/ajaxhanghoa.ashx?type="
 
-# ✅ **Hàm lấy dữ liệu từ API**
 def fetch_data(data_type):
     url = f"{API_URL}{data_type}"
     response = requests.get(url)
     if response.status_code == 200:
         return response.json().get("Data", [])
     return []
-# 📌 **Tải dữ liệu ESG từ Google Drive**
+
 @st.cache_data
 def load_esg_data():
     url = "https://docs.google.com/spreadsheets/d/1OeA2H9VNltu7hnhSR_U-lFBNUE_lJ_qq/export?format=xlsx"
@@ -33,7 +31,6 @@ def load_esg_data():
 
 df_esg = load_esg_data()
 
-# 🎯 **Hàm vẽ vòng tròn ESG**
 def draw_circle(color, text):
     fig, ax = plt.subplots(figsize=(4, 4), dpi=200)
     ax.set_xlim(-1, 1)
@@ -49,22 +46,18 @@ def draw_circle(color, text):
 
     return fig
 
-# 📌 **Tải FinBERT model**
 @st.cache_resource
 def load_finbert():
     return pipeline("text-classification", model="ProsusAI/finbert")
 
-# ✅ **Initialize sentiment analysis**
 sentiment_pipeline = load_finbert()
 
-# ✅ **Translate Vietnamese text to English**
 def translate_to_english(text):
     try:
         return GoogleTranslator(source='auto', target='en').translate(text)
     except:
-        return text  # If translation fails, keep the original text
+        return text  
 
-# ✅ **Convert sentiment labels to numeric scores**
 def sentiment_to_score(label, score):
     if label == "positive":
         return score * 100
@@ -73,7 +66,6 @@ def sentiment_to_score(label, score):
     else:
         return 50
 
-# ✅ **Classify sentiment based on score**
 def classify_sentiment(score):
     if score < 33:
         return "❌ Tiêu cực"
@@ -82,14 +74,11 @@ def classify_sentiment(score):
     else:
         return "✅ Tích cực"
 
-# 📅 **Thiết lập thời gian mặc định**
 start_date = datetime(2015, 1, 1).strftime('%Y-%m-%d')
 end_date = datetime.today().strftime('%Y-%m-%d')
 
-# 🏦 **Khởi tạo đối tượng Vnstock**
 stock = Vnstock().stock(symbol='ACB', source='VCI')
 
-# ✅ **Hàm lấy dữ liệu VNINDEX**
 @st.cache_data
 def get_vnindex_data():
     df = stock.quote.history(symbol='VNINDEX', start=start_date, end=end_date, interval='1D')
@@ -98,33 +87,26 @@ def get_vnindex_data():
         df['time'] = pd.to_datetime(df['time'])
     return df
 
-# Lấy dữ liệu
 df_vnindex = get_vnindex_data()
 
-# ✅ **Hàm tạo biểu đồ giá và khối lượng giao dịch VNINDEX**
 def create_vnindex_chart(df):
     fig = go.Figure()
 
-    # Định dạng lại cột thời gian
     df['time'] = pd.to_datetime(df['time']).dt.strftime('%Y-%m-%d')
 
-    # Biểu đồ đường cho giá đóng cửa
     fig.add_trace(go.Scatter(
         x=df['time'], y=df['close'], mode='lines', name='Giá đóng cửa',
         line=dict(color='blue')
     ))
 
-    # Biểu đồ cột cho khối lượng giao dịch
     fig.add_trace(go.Bar(
         x=df['time'], y=df['volume'], name='Khối lượng giao dịch',
         marker_color='green', opacity=0.5, yaxis='y2'
     ))
 
-    # Tạo nhãn trục x với khoảng cách hợp lý
     tick_indices = list(range(0, len(df), max(len(df) // 10, 1)))
     tick_labels = [df['time'].iloc[i] for i in tick_indices]
 
-    # Cấu hình biểu đồ
     fig.update_layout(
         title='📈 Giá đóng cửa & Khối lượng Giao dịch VNINDEX (Nguồn: Vnstock)',
         xaxis_title='Thời gian',
@@ -148,7 +130,6 @@ def create_vnindex_chart(df):
     )
     return fig
 
-# ✅ **Fetch stock historical data from VNStock**
 def get_stock_data(symbol):
     stock = Vnstock().stock(symbol=symbol, source='VCI')  # ✅ Dynamically fetch data
     end_date = datetime.today().strftime('%Y-%m-%d')
@@ -159,7 +140,6 @@ def get_stock_data(symbol):
     df.reset_index(drop=True, inplace=True)
     return df
 
-# 📊 **Hàm tạo biểu đồ giá và khối lượng**
 def create_line_chart(df, symbol):
     fig = go.Figure()
     df['time'] = pd.to_datetime(df['time']).dt.strftime('%Y-%m-%d')
@@ -199,7 +179,6 @@ def create_line_chart(df, symbol):
     )
     return fig
 
-# ✅ **Fetch business news from CafeF**
 def get_latest_articles(symbol, limit=20):
     data_rows = []
     try:
@@ -224,7 +203,6 @@ def get_latest_articles(symbol, limit=20):
 
     return pd.DataFrame(data_rows)
 
-# 📰 **Hàm lấy tin tức vĩ mô từ VNExpress**
 BASE_URL = "https://vnexpress.net"
 SEARCH_URL = "https://vnexpress.net/kinh-doanh/vi-mo"
 
@@ -281,7 +259,6 @@ def get_macro_news():
             except:
                 continue
 
-        # Lấy ngày đăng từ từng bài viết bằng multi-threading
         with concurrent.futures.ThreadPoolExecutor() as executor:
             dates = executor.map(extract_publish_date, [link for _, _, link in links])
 
@@ -292,7 +269,6 @@ def get_macro_news():
 
     return pd.DataFrame(news_data)
 
-# ✅ **Analyze sentiment using FinBERT**
 def analyze_sentiment(df):
     if df.empty:
         return df
@@ -304,17 +280,14 @@ def analyze_sentiment(df):
     df["Sentiment_Label"] = df["Sentiment_Score"].apply(classify_sentiment)
     return df
 
-# ✅ **Streamlit UI Setup**
 st.title("📊 Phân tích Cổ phiếu & Tin tức Vĩ mô")
 
-# 🏦 **Người dùng chọn chế độ**
 selected_mode = st.radio(
     "Chọn loại dữ liệu:",
     ["Dữ liệu Doanh nghiệp", "Dữ liệu Vĩ mô", "Tổng quan thị trường"],
     key="unique_data_mode_selector"
 )
 
-# ✅ **Dữ liệu Doanh Nghiệp**
 if selected_mode == "Dữ liệu Doanh nghiệp":
     analysis_type = st.selectbox(
         "Chọn loại phân tích:",
@@ -322,23 +295,19 @@ if selected_mode == "Dữ liệu Doanh nghiệp":
         key="enterprise_analysis_type"
     )
 
-    # ✅ **Người dùng nhập mã cổ phiếu**
     stock_code = st.text_input("Nhập mã cổ phiếu (VD: ACB, HPG, VNM):").upper()
 
-    # ✅ **Phân tích giá cổ phiếu & Tin tức**
     if analysis_type == "Phân tích giá cổ phiếu & Tin tức" and stock_code:
         df_stock = get_stock_data(stock_code)
         if not df_stock.empty:
             st.plotly_chart(create_line_chart(df_stock, stock_code))
 
-        # 📊 **Lấy tin tức doanh nghiệp**
         df_news = get_latest_articles(stock_code, limit=20)
         if not df_news.empty:
             df_news = analyze_sentiment(df_news)
             st.write("### 📰 Tin Tức Doanh Nghiệp & Phân Tích Cảm Xúc")
             st.dataframe(df_news[['news_date', 'title', 'Sentiment_Score', 'Sentiment_Label', 'url']])
 
-            # 📊 **Gauge Chart - Stock News Sentiment**
             avg_sentiment = df_news["Sentiment_Score"].mean()
             st.plotly_chart(go.Figure(go.Indicator(
                 mode="gauge+number",
@@ -349,24 +318,18 @@ if selected_mode == "Dữ liệu Doanh nghiệp":
                                  {'range': [33, 66], 'color': '#FFDD57'},
                                  {'range': [66, 100], 'color': '#4CAF50'}]})))
 
-    # ✅ **Phân tích ESG**
     elif analysis_type == "Phân tích ESG" and stock_code:
         result = df_esg[df_esg['Code'] == stock_code]
 
-        # 📌 **Hiển thị vòng tròn ESG**
         if result.empty:
             st.pyplot(draw_circle("red", "Không công bố ESG"))
         else:
             esg_score = result["ESG Combined Score"].mean()
             st.pyplot(draw_circle("green", f"{esg_score:.2f}"))
 
-
-
-    # 📊 **2. Phân tích Tài chính Cổ phiếu**
     elif analysis_type == "Phân tích Tài chính Cổ phiếu" and stock_code:
         stock = Vnstock().stock(symbol=stock_code, source='VCI')
 
-        # ✅ **1️⃣ Bảng Cân Đối Kế Toán**
         df_balancesheet = stock.finance.balance_sheet(period='year', lang='vi', dropna=True)
         if df_balancesheet is None or df_balancesheet.empty:
             st.error("🚨 Không thể tải dữ liệu Bảng Cân Đối Kế Toán!")
@@ -377,7 +340,6 @@ if selected_mode == "Dữ liệu Doanh nghiệp":
         df_balancesheet['Năm'] = df_balancesheet['Năm'].astype(int)
         df_balancesheet = df_balancesheet.sort_values(by='Năm', ascending=False).head(5)
 
-        # 📊 **Tạo biểu đồ Tài Sản & Nợ Phải Trả**
         st.subheader(f"📉 Tài Sản & Nợ Phải Trả (Nguồn: Vnstock)")
         fig1 = px.bar(df_balancesheet, x='Năm', y=balance_columns[1:],
                     barmode='group', title="Tài Sản & Nợ Phải Trả",
@@ -386,7 +348,6 @@ if selected_mode == "Dữ liệu Doanh nghiệp":
         fig1.update_layout(yaxis_title="Tỷ đồng")
         st.plotly_chart(fig1)
 
-        # ✅ **2️⃣ Báo Cáo Thu Nhập**
         df_income = stock.finance.income_statement(period='year', lang='vi', dropna=True)
         if df_income is None or df_income.empty:
             st.error("🚨 Không thể tải dữ liệu Báo Cáo Thu Nhập!")
@@ -405,7 +366,6 @@ if selected_mode == "Dữ liệu Doanh nghiệp":
         fig2.update_layout(yaxis_title="Tỷ đồng")
         st.plotly_chart(fig2)
 
-                    # ✅ **3️⃣ Dòng Tiền**
         df_cash = stock.finance.cash_flow(period='year', lang='vi', dropna=True)
         if df_cash is None or df_cash.empty:
             st.error("🚨 Không thể tải dữ liệu Dòng Tiền!")
@@ -426,7 +386,6 @@ if selected_mode == "Dữ liệu Doanh nghiệp":
         fig3.update_layout(yaxis_title="Tỷ đồng")
         st.plotly_chart(fig3)
 
-        # ✅ **4️⃣ Chỉ số Tài Chính**
         df_ratio = stock.finance.ratio(period='year', lang='vi', dropna=True)
         if df_ratio is None or df_ratio.empty:
             st.error("🚨 Không thể tải dữ liệu Chỉ Số Tài Chính!")
@@ -451,15 +410,12 @@ if selected_mode == "Dữ liệu Doanh nghiệp":
         fig4.update_layout(yaxis_title="Tỷ lệ (%)")
         st.plotly_chart(fig4)
 
-
-
-# ✅ **Chế độ Dữ liệu Vĩ mô**
 elif selected_mode == "Dữ liệu Vĩ mô":
     st.plotly_chart(create_vnindex_chart(df_vnindex))
 
     df_macro = get_macro_news()
 
-    if not df_macro.empty:  # ✅ Correct usage
+    if not df_macro.empty:  
         df_macro = analyze_sentiment(df_macro)
 
         st.write("### 🌍 Tin Tức Vĩ Mô & Phân tích cảm xúc bằng mô hình Finbert (Nguồn: VnExpress)")
@@ -467,7 +423,6 @@ elif selected_mode == "Dữ liệu Vĩ mô":
             st.markdown(f"**🗓 Date**: {row['date']} | **📰 Title**: [{row['title']}]({row['url']})")
             st.markdown(f"📊 **Sentiment Score**: {row['Sentiment_Score']:.2f} - {row['Sentiment_Label']}")
 
-        # 📊 **Gauge Chart**
         average_sentiment = df_macro["Sentiment_Score"].mean()
         st.plotly_chart(go.Figure(go.Indicator(
             mode="gauge+number",
@@ -478,7 +433,6 @@ elif selected_mode == "Dữ liệu Vĩ mô":
                              {'range': [33, 66], 'color': '#FFDD57'},
                              {'range': [66, 100], 'color': '#4CAF50'}]})))
 
-        # 📊 **Sentiment Distribution**
         sentiment_counts = df_macro['Sentiment_Score'].apply(
             lambda x: "POSITIVE" if x > 66 else "NEUTRAL" if x > 33 else "NEGATIVE"
         ).value_counts()
@@ -488,7 +442,6 @@ elif selected_mode == "Dữ liệu Vĩ mô":
                             title="Sentiment Distribution")
         st.plotly_chart(fig_plotly)
 
-        # 📊 **Word Cloud**
         text_data = " ".join(df_macro['title'])
         wordcloud = WordCloud(width=800, height=400, background_color='black', colormap='viridis').generate(text_data)
         fig, ax = plt.subplots(figsize=(10, 5))
@@ -496,20 +449,15 @@ elif selected_mode == "Dữ liệu Vĩ mô":
         ax.axis('off')
         st.pyplot(fig)
 
-    # Streamlit UI
-    st.title("📊 Dữ liệu thị trường tài chính (Nguồn: CafeF)")
+    st.title("📊 Dữ liệu thị trường tài chính hôm nay (Nguồn: CafeF)")
 
-    # Select category
     data_type = st.selectbox("🔎 Chọn danh mục", ["Hàng hóa", "Tỷ giá", "Tiền mã hóa"])
 
-    # Map selection to API type
     type_mapping = {"Hàng hóa": 1, "Tỷ giá": 2, "Tiền mã hóa": 3}
     selected_type = type_mapping[data_type]
 
-    # Fetch data
     data = fetch_data(selected_type)
 
-    # Convert to DataFrame and display only "Giá" và "Thay đổi 24h"
     if data:
         if selected_type == 1:
             df = pd.DataFrame(data)[["goods", "last", "changePercent"]]
@@ -523,7 +471,6 @@ elif selected_mode == "Dữ liệu Vĩ mô":
             df = pd.DataFrame(data)[["name", "price", "change24H"]]
             df.rename(columns={"name": "Tên", "price": "Giá", "change24H": "Thay đổi (%)"}, inplace=True)
 
-        # Display DataFrame
         st.dataframe(df)
     else:
         st.warning("⚠️ Không có dữ liệu!")
@@ -531,9 +478,7 @@ elif selected_mode == "Dữ liệu Vĩ mô":
 elif selected_mode == "Tổng quan thị trường":
     today = datetime.today().strftime('%d-%m-%Y')
     st.title(f"📊 TOÀN CẢNH THỊ TRƯỜNG - NGÀY: {today}")
-    # ==========================
-    # TOP 10 CỔ PHIẾU
-    # ==========================
+
     STOCK_API_URL = "https://cafef.vn/du-lieu/Ajax/Mobile/Smart/AjaxTop10CP.ashx?centerID={}&type={}"
 
     MARKET_MAP = {
@@ -575,7 +520,6 @@ elif selected_mode == "Tổng quan thị trường":
     selected_market = st.selectbox("Chọn sàn giao dịch", list(MARKET_MAP.keys()), index=0)
     selected_type = st.selectbox("Chọn loại dữ liệu", list(TYPE_MAP.keys()), index=0)
 
-    # Load dữ liệu ngay khi người dùng thay đổi lựa chọn
     market_code = MARKET_MAP[selected_market]
     type_code = TYPE_MAP[selected_type]
     df = fetch_stock_data(market_code, type_code)
@@ -584,22 +528,16 @@ elif selected_mode == "Tổng quan thị trường":
     else:
         st.warning("Không có dữ liệu để hiển thị.")
 
-    # ==========================
-    # ỨNG DỤNG THỐNG KÊ NGÀNH
-    # ==========================
-    # 📌 API URL
     API_URL = "https://api-finance-t19.24hmoney.vn/v2/ios/company-group/all-level-with-summary?device_id=web17406339ikhn53nn5up2uqzfk91s8066yte1q5a456253&device_name=INVALID&device_model=Windows+11&network_carrier=INVALID&connection_type=INVALID&os=Chrome&os_version=133.0.0.0&access_token=INVALID&push_token=INVALID&locale=vi&browser_id=web17406339ikhn53nn5up2uqzfk91s8066yte1q5a456253&type=day"
 
     headers = {"User-Agent": "Mozilla/5.0"}
 
-    # 📌 Hàm lấy dữ liệu từ API
     def get_stock_data():
         response = requests.get(API_URL, headers=headers)
         if response.status_code == 200:
             data = response.json()
             records = []
 
-            # 📌 Hàm đệ quy trích xuất dữ liệu từ JSON
             def extract_data(json_data, parent_name=""):
                 for group in json_data:
                     total_val = group.get("total_val", 0.0)
@@ -607,7 +545,6 @@ elif selected_mode == "Tổng quan thị trường":
                     total_val_nochange = group.get("total_val_nochange", 0)
                     total_val_decrease = group.get("total_val_decrease", 0)
 
-                    # 📌 Tránh lỗi chia cho 0
                     if total_val == 0:
                         pct_increase, pct_nochange, pct_decrease = 0, 0, 0
                     else:
@@ -629,19 +566,16 @@ elif selected_mode == "Tổng quan thị trường":
                         "total_val_increase": total_val_increase,
                         "total_val_nochange": total_val_nochange,
                         "total_val_decrease": total_val_decrease,
-                        "pct_increase": pct_increase,   # 📌 Tỷ lệ %
-                        "pct_nochange": pct_nochange,   # 📌 Tỷ lệ %
-                        "pct_decrease": pct_decrease    # 📌 Tỷ lệ %
+                        "pct_increase": pct_increase,  
+                        "pct_nochange": pct_nochange,  
+                        "pct_decrease": pct_decrease    
                     })
 
-                    # Gọi đệ quy nếu có danh sách con
                     if "child" in group and isinstance(group["child"], list):
                         extract_data(group["child"], parent_name=group["icb_name"])
 
-            # 📌 Gọi hàm xử lý dữ liệu
             extract_data(data["data"]["groups"])
 
-            # 📌 Chuyển danh sách thành DataFrame
             df = pd.DataFrame(records)
 
             return df
@@ -649,18 +583,14 @@ elif selected_mode == "Tổng quan thị trường":
             st.error(f"❌ Lỗi khi lấy dữ liệu từ API: {response.status_code}")
             return pd.DataFrame()
 
-    # 📌 Lấy dữ liệu và lọc chỉ ngành cấp 2
     df = get_stock_data()
     df_filtered = df[df["icb_level"] == 2]
 
-    # 📌 Streamlit UI
     st.title("📊 Thống kê ngành (Nguồn: 24h Money)")
 
-    # 📌 Hiển thị bảng dữ liệu ngành cấp 2
     if not df_filtered.empty:
         st.subheader("📌 Danh sách ngành")
 
-        # **Tạo cột màu cho biến động giá**
         def format_percent(val):
             color = "red" if val < 0 else "green"
             return f'<span style="color:{color}; font-weight:bold">{val:.2f}%</span>'
@@ -675,22 +605,15 @@ elif selected_mode == "Tổng quan thị trường":
             "Số lượng cổ phiếu tăng", "Số lượng cổ phiếu không đổi", "Số lượng cổ phiếu giảm"
         ]
 
-        # Chuyển đổi dữ liệu cột
         df_display["Biến động giá (%)"] = df_display["Biến động giá (%)"].apply(format_percent)
         df_display["Giá trị GD (tỷ)"] = df_display["Giá trị GD (tỷ)"].astype(float)
 
-        # Sắp xếp theo tổng giá trị giao dịch
         df_display = df_display.sort_values(by="Giá trị GD (tỷ)", ascending=False)
 
-        # 📌 Hiển thị bảng dữ liệu có định dạng HTML
         st.markdown(df_display.to_html(escape=False, index=False), unsafe_allow_html=True)
-
-        # 📌 Biểu đồ dòng tiền (stacked bar chart)
-        #st.subheader("📌 Phân bổ dòng tiền theo ngành")
 
         fig = go.Figure()
 
-        # **📌 Thêm hovertemplate để hiển thị giá trị thực tế**
         fig.add_trace(go.Bar(
             y=df_filtered["icb_name"],
             x=df_filtered["pct_increase"],
@@ -698,7 +621,7 @@ elif selected_mode == "Tổng quan thị trường":
             orientation="h",
             marker=dict(color="green"),
             hovertemplate="<b>%{y}</b><br>🔼 Giá trị tăng: %{customdata} tỷ<extra></extra>",
-            customdata=df_filtered["total_val_increase"]  # 📌 Hiển thị giá trị thực
+            customdata=df_filtered["total_val_increase"]  
         ))
 
         fig.add_trace(go.Bar(
@@ -708,7 +631,7 @@ elif selected_mode == "Tổng quan thị trường":
             orientation="h",
             marker=dict(color="yellow"),
             hovertemplate="<b>%{y}</b><br>⚖️ Giá trị không đổi: %{customdata} tỷ<extra></extra>",
-            customdata=df_filtered["total_val_nochange"]  # 📌 Hiển thị giá trị thực
+            customdata=df_filtered["total_val_nochange"]  
         ))
 
         fig.add_trace(go.Bar(
@@ -718,15 +641,15 @@ elif selected_mode == "Tổng quan thị trường":
             orientation="h",
             marker=dict(color="red"),
             hovertemplate="<b>%{y}</b><br>🔻 Giá trị giảm: %{customdata} tỷ<extra></extra>",
-            customdata=df_filtered["total_val_decrease"]  # 📌 Hiển thị giá trị thực
+            customdata=df_filtered["total_val_decrease"]  
         ))
 
         fig.update_layout(
             title="📌 Phân bổ dòng tiền theo ngành (Nguồn: 24h Money)",
             xaxis_title="Phân bổ dòng tiền",
             yaxis_title="Ngành",
-            barmode="stack",  # 📌 Xếp chồng các cột ngang
-            xaxis=dict(showticklabels=False),  # 📌 Ẩn giá trị trục X
+            barmode="stack", 
+            xaxis=dict(showticklabels=False),  
             xaxis_tickangle=-45
         )
 
@@ -735,7 +658,6 @@ elif selected_mode == "Tổng quan thị trường":
     else:
         st.warning("Không có dữ liệu để hiển thị.")
 
-    # 📌 Danh sách mã ngành và sàn giao dịch
     category_mapping = {
         "Tất cả các ngành": 0,
         "Bất động sản và Xây dựng": 345,
@@ -757,7 +679,6 @@ elif selected_mode == "Tổng quan thị trường":
         "UPCoM": 9
     }
 
-    # 📌 Hàm lấy dữ liệu từ CafeF theo ngành và sàn
     def get_cafef_data(category_id, center_id):
         url = f"https://cafef.vn/du-lieu/ajax/mobile/smart/ajaxbandothitruong.ashx?type=1&category={category_id}&centerId={center_id}"
         headers = {"User-Agent": "Mozilla/5.0"}
@@ -773,7 +694,6 @@ elif selected_mode == "Tổng quan thị trường":
             st.error(f"❌ Lỗi khi lấy dữ liệu từ CafeF: {response.status_code}")
         return pd.DataFrame()
 
-    # 📌 Hàm lấy dữ liệu giao dịch khối ngoại từ 24hMoney
     def get_foreign_trading_data():
         url = "https://api-finance-t19.24hmoney.vn/v2/web/indices/foreign-trading-all-stock-by-time?code=10&type=today"
         headers = {"User-Agent": "Mozilla/5.0"}
@@ -789,30 +709,23 @@ elif selected_mode == "Tổng quan thị trường":
             st.error(f"❌ Lỗi khi lấy dữ liệu từ 24hMoney: {response.status_code}")
         return pd.DataFrame()
 
-    # ✅ UI Streamlit
     st.title("📊 Bản đồ thị trường (Nguồn: CafeF)")
 
-    # 📌 **Chọn nhóm ngành và sàn giao dịch**
     selected_sector = st.selectbox("🔍 Chọn nhóm ngành", list(category_mapping.keys()))
     selected_center = st.selectbox("📍 Chọn sàn giao dịch", list(center_mapping.keys()))
 
-    # 📌 Lấy dữ liệu từ CafeF
     category_id = category_mapping[selected_sector]
     center_id = center_mapping[selected_center]
     df_cafef = get_cafef_data(category_id, center_id)
 
-    # 📌 Hiển thị Treemap nếu có dữ liệu
     if not df_cafef.empty:
         st.subheader(f"📌 Bản đồ thị trường - {selected_sector} ({selected_center})")
 
-        # ✅ Map màu sắc theo cột "Color"
         color_map = {2: "#800080", 1: "#008000", 0: "#FF0000", -1: "#FFD700"}
         df_cafef["ColorMapped"] = df_cafef["Color"].map(color_map)
 
-        # ✅ Tạo cột nhãn hiển thị cả mã chứng khoán và ChangePercent
         df_cafef["Label"] = df_cafef["Symbol"] + "<br>" + df_cafef["ChangePercent"].astype(str) + "%"
 
-        # ✅ Chọn tiêu chí vẽ đồ thị
         option = st.selectbox(
             "📊 Chọn tiêu chí vẽ Treemap:",
             ["Khối lượng giao dịch", "Giá trị giao dịch", "Vốn hóa"]
@@ -821,7 +734,6 @@ elif selected_mode == "Tổng quan thị trường":
         column_mapping = {"Khối lượng giao dịch": "TotalVolume", "Giá trị giao dịch": "TotalValue", "Vốn hóa": "MarketCap"}
         selected_column = column_mapping[option]
 
-        # ✅ Vẽ treemap
         fig1 = px.treemap(
             df_cafef,
             path=["Label"],
@@ -831,24 +743,18 @@ elif selected_mode == "Tổng quan thị trường":
             color_discrete_map=color_map
         )
 
-        # ✅ Hiển thị biểu đồ
         st.plotly_chart(fig1)
     else:
         st.warning("Không thể tải dữ liệu từ CafeF.")
 
-    # 📌 **Biểu đồ giao dịch khối ngoại từ 24hMoney**
     df_foreign = get_foreign_trading_data()
     if not df_foreign.empty:
-        #st.subheader("📌 Giao dịch Khối Ngoại - Top mua ròng và bán ròng (Nguồn: CafeF)")
-
-        # ✅ Lọc top 10 mã có giá trị mua ròng cao nhất và bán ròng thấp nhất
+       
         top_buy = df_foreign.nlargest(10, 'net_val').sort_values('net_val', ascending=True)
         top_sell = df_foreign.nsmallest(10, 'net_val').sort_values('net_val', ascending=False)
 
-        # ✅ Tạo biểu đồ với hai trục Y đối xứng
         fig2 = go.Figure()
 
-        # Bán ròng (màu đỏ, trục bên trái)
         fig2.add_trace(go.Bar(
             y=top_sell['symbol'],
             x=top_sell['net_val'],
@@ -858,7 +764,6 @@ elif selected_mode == "Tổng quan thị trường":
             yaxis='y1'
         ))
 
-        # Mua ròng (màu xanh, trục bên phải)
         fig2.add_trace(go.Bar(
             y=top_buy['symbol'],
             x=top_buy['net_val'],
@@ -868,7 +773,6 @@ elif selected_mode == "Tổng quan thị trường":
             yaxis='y2'
         ))
 
-        # ✅ Cấu hình hai trục Y đối xứng
         fig2.update_layout(
             title="Giao dịch khối ngoại - Top mua ròng và bán ròng (Nguồn: 24h Money)",
             xaxis_title="Giá trị mua/bán ròng (Tỷ đồng)",
@@ -880,23 +784,15 @@ elif selected_mode == "Tổng quan thị trường":
             yaxis2=dict(title="Top mua ròng", overlaying="y", side="right", showgrid=False)
         )
 
-        # ✅ Hiển thị biểu đồ
         st.plotly_chart(fig2)
     else:
         st.warning("Không thể tải dữ liệu từ 24hMoney.")
 
-
-    # ==========================
-    # API URLs
-    # ==========================
     MARKET_LEADER_API = "https://msh-appdata.cafef.vn/rest-api/api/v1/MarketLeaderGroup?centerId={}"
     MARKET_MAP = {"VN-Index": 1, "HNX": 2, "UPCOM": 9}
 
     headers = {"User-Agent": "Mozilla/5.0"}
 
-    # ==========================
-    # HÀM LẤY DỮ LIỆU
-    # ==========================
     def fetch_market_leader_data(market_id):
         """Lấy dữ liệu từ API của CafeF"""
         url = MARKET_LEADER_API.format(market_id)
@@ -911,17 +807,11 @@ elif selected_mode == "Tổng quan thị trường":
             st.error("Không thể lấy dữ liệu từ API")
         return pd.DataFrame()
 
-    # ==========================
-    # API URLs
-    # ==========================
     MARKET_LEADER_API = "https://msh-appdata.cafef.vn/rest-api/api/v1/MarketLeaderGroup?centerId={}"
     MARKET_MAP = {"VN-Index": 1, "HNX": 2, "UPCOM": 9}
 
     headers = {"User-Agent": "Mozilla/5.0"}
 
-    # ==========================
-    # HÀM LẤY DỮ LIỆU
-    # ==========================
     def fetch_market_leader_data(market_id):
         """Lấy dữ liệu từ API của CafeF"""
         url = MARKET_LEADER_API.format(market_id)
@@ -936,26 +826,20 @@ elif selected_mode == "Tổng quan thị trường":
             st.error("Không thể lấy dữ liệu từ API")
         return pd.DataFrame()
 
-    # ==========================
-    # GIAO DIỆN STREAMLIT
-    # ==========================
     st.title("📈 Nhóm dẫn dắt thị trường")
     selected_market = st.selectbox("Chọn sàn giao dịch", list(MARKET_MAP.keys()), index=0)
     market_id = MARKET_MAP[selected_market]
 
-    # Lấy dữ liệu từ API
     df_market = fetch_market_leader_data(market_id)
     if not df_market.empty:
-        # Xác định màu sắc dựa trên giá trị Score
+        
         df_market["color"] = df_market["score"].apply(lambda x: "green" if x > 0 else "red")
 
-        # Sắp xếp: Xanh giảm dần, Đỏ tăng dần
         df_market = pd.concat([
             df_market[df_market["score"] > 0].sort_values(by="score", ascending=False),
             df_market[df_market["score"] <= 0].sort_values(by="score", ascending=False)
         ])
 
-        # Vẽ biểu đồ cột với màu tùy chỉnh
         fig = go.Figure()
         fig.add_trace(go.Bar(
             x=df_market["symbol"],
@@ -975,13 +859,10 @@ elif selected_mode == "Tổng quan thị trường":
     else:
         st.warning("Không có dữ liệu để hiển thị.")
 
-    # 📌 **Lấy ngày hôm nay**
     today_str = datetime.today().strftime('%Y%m%d')
 
-    # 📌 **API Base URL**
     API_BASE_URL = "https://msh-appdata.cafef.vn/rest-api/api/v1/OverviewOrgnizaztion/0/{date}/{type}?symbol={symbol}"
 
-    # ✅ **Hàm lấy dữ liệu từ API**
     def fetch_data(symbol, transaction_type, date):
         """ Lấy dữ liệu từ API dựa trên mã cổ phiếu, loại giao dịch và ngày """
         url = API_BASE_URL.format(date=date, type=transaction_type, symbol=symbol)
@@ -990,20 +871,17 @@ elif selected_mode == "Tổng quan thị trường":
             data = response.json()
             df = pd.DataFrame(data)
             if not df.empty:
-                df["date"] = df["date"].str[:10]  # Giữ lại YYYY-MM-DD, bỏ phần giờ
+                df["date"] = df["date"].str[:10]  
                 df = df.sort_values(by="date")
             return df
         else:
             st.error(f"❌ Lỗi lấy dữ liệu từ API: {response.status_code}")
             return pd.DataFrame()
 
-    # ✅ **Ứng dụng Streamlit**
     st.title("📊 Phân tích Giao dịch Chứng khoán (Nguồn: CafeF)")
 
-    # 🔄 **Nhập mã cổ phiếu**
     symbol = st.text_input("Nhập mã cổ phiếu (VD: MWG, HPG, VNM):", value="VNINDEX").upper()
 
-    # 🔄 **Chọn loại giao dịch**
     transaction_options = {
         "Tự doanh": 20,
         "Khối ngoại": 15
@@ -1011,7 +889,6 @@ elif selected_mode == "Tổng quan thị trường":
     selected_transaction = st.selectbox("🔍 Chọn loại giao dịch", list(transaction_options.keys()))
     transaction_type = transaction_options[selected_transaction]
 
-    # 📊 **Chọn loại dữ liệu**
     data_options = {
         "Khối lượng giao dịch": "volume",
         "Giá trị giao dịch": "value"
@@ -1019,26 +896,21 @@ elif selected_mode == "Tổng quan thị trường":
     selected_data = st.radio("📊 Chọn loại dữ liệu", list(data_options.keys()))
     data_type = data_options[selected_data]
 
-    # 📌 **Lấy dữ liệu**
     df = fetch_data(symbol, transaction_type, today_str)
 
-    # ✅ **Kiểm tra dữ liệu hợp lệ**
     if not df.empty:
         df = df[["date", "buyVol", "buyVal", "sellVol", "sellVal", "netVol", "netVal"]]
 
-        # 📌 **Chuyển giá trị bán thành số âm để hiển thị dưới trục X**
         df["sellVol"] = -df["sellVol"]
         df["sellVal"] = -df["sellVal"]
 
-        # 📊 **Giảm số lượng nhãn trên trục X**
         tick_indices = list(range(0, len(df), max(len(df) // 8, 1)))
         tick_labels = [df["date"].iloc[i] for i in tick_indices]
 
-        # 📊 **Tạo biểu đồ**
         fig = go.Figure()
 
         if data_type == "volume":
-            # Biểu đồ Khối lượng giao dịch
+            
             fig.add_trace(go.Bar(
                 x=df["date"], y=df["buyVol"], name="Khối lượng Mua", marker_color="blue"
             ))
@@ -1058,7 +930,7 @@ elif selected_mode == "Tổng quan thị trường":
             )
 
         elif data_type == "value":
-            # Biểu đồ Giá trị giao dịch
+            
             fig.add_trace(go.Bar(
                 x=df["date"], y=df["buyVal"], name="Giá trị Mua", marker_color="blue"
             ))
@@ -1077,15 +949,12 @@ elif selected_mode == "Tổng quan thị trường":
                 barmode="relative"
             )
 
-        # 📌 **Hiển thị biểu đồ**
         st.plotly_chart(fig)
     else:
         st.warning("⚠ Không có dữ liệu!")
 
-    # 📌 API Base URL
 API_BASE_URL = "https://msh-appdata.cafef.vn/rest-api/api/v1/Liquidity/{symbol}"
 
-# ✅ **Hàm lấy dữ liệu từ API**
 def fetch_liquidity_data(symbol):
     """Lấy dữ liệu thanh khoản từ API dựa trên mã cổ phiếu"""
     url = API_BASE_URL.format(symbol=symbol)
@@ -1094,31 +963,25 @@ def fetch_liquidity_data(symbol):
         data = response.json()
         df = pd.DataFrame(data)
         if not df.empty:
-            df["date"] = df["date"].astype(str)  # Giữ nguyên dạng string
+            df["date"] = df["date"].astype(str)  
         return df
     else:
         st.error(f"❌ Lỗi lấy dữ liệu từ API: {response.status_code}")
         return pd.DataFrame()
 
-    # ✅ **Ứng dụng Streamlit**
     st.title("📊 Thanh khoản thị trường (Nguồn: CafeF)")
 
-    # 🔄 **Nhập mã cổ phiếu**
     symbol = st.text_input("Nhập mã cổ phiếu (VD: REE, MWG, HPG):").upper()
 
-    # 📌 **Lấy dữ liệu khi có mã cổ phiếu**
     if symbol:
         df = fetch_liquidity_data(symbol)
 
-        # ✅ **Kiểm tra dữ liệu hợp lệ**
         if not df.empty:
-            df = df[["date", "gtgD1", "gtgD2"]]  # Chỉ lấy các cột cần thiết
+            df = df[["date", "gtgD1", "gtgD2"]]  
 
-            # 📊 **Giảm số lượng nhãn trên trục X**
             tick_indices = list(range(0, len(df), max(len(df) // 10, 1)))
             tick_labels = [df["date"].iloc[i] for i in tick_indices]
 
-            # 📊 **Tạo biểu đồ thanh khoản**
             fig = go.Figure()
 
             fig.add_trace(go.Scatter(
@@ -1144,12 +1007,11 @@ def fetch_liquidity_data(symbol):
                     ticktext=tick_labels
                 ),
                 yaxis=dict(
-                    tickformat=",.0f"  # Hiển thị số nguyên, không có "k" hoặc "M"
+                    tickformat=",.0f"  
                 ),
                 legend=dict(x=0, y=1)
             )
 
-            # 📌 **Hiển thị biểu đồ**
             st.plotly_chart(fig)
 
         else:
