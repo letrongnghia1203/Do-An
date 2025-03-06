@@ -399,6 +399,10 @@ if selected_mode == "Dữ liệu Doanh nghiệp":
         ]
         df_ratio = df_ratio[ratio_columns]
         df_ratio[('Meta', 'Năm')] = df_ratio[('Meta', 'Năm')].astype(int)
+
+        df_ratio[('Chỉ tiêu khả năng sinh lợi', 'ROE (%)')] *= 100
+        df_ratio[('Chỉ tiêu khả năng sinh lợi', 'ROA (%)')] *= 100
+        
         df_ratio = df_ratio.sort_values(by=('Meta', 'Năm'), ascending=False).head(5)
         df_ratio.columns = ['Năm', 'ROE (%)', 'ROA (%)', 'EPS (VND)']
 
@@ -407,7 +411,7 @@ if selected_mode == "Dữ liệu Doanh nghiệp":
                     barmode='group', title="ROE & ROA",
                     labels={'value': "Tỷ lệ", 'variable': "Chỉ tiêu"})
         fig4.for_each_trace(lambda t: t.update(name=t.name.replace(" (Tỷ đồng)", "")))
-        fig4.update_layout(yaxis_title="Tỷ lệ")
+        fig4.update_layout(yaxis_title="Tỷ lệ (%)")
         st.plotly_chart(fig4)
 
 elif selected_mode == "Dữ liệu Vĩ mô":
