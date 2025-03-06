@@ -131,12 +131,12 @@ def create_vnindex_chart(df):
     return fig
 
 def get_stock_data(symbol):
-    stock = Vnstock().stock(symbol=symbol, source='VCI')  # ✅ Dynamically fetch data
+    stock = Vnstock().stock(symbol=symbol, source='VCI')  
     end_date = datetime.today().strftime('%Y-%m-%d')
-    start_date = (datetime.today() - timedelta(days=365*5)).strftime('%Y-%m-%d')  # 5 years of data
+    start_date = (datetime.today() - timedelta(days=365*5)).strftime('%Y-%m-%d')  
     df = stock.quote.history(symbol=symbol, start=start_date, end=end_date, interval='1D')
     df = df.dropna().sort_values(by='time')
-    df = df[df['volume'] > 0]  # Keep only trading days
+    df = df[df['volume'] > 0]  
     df.reset_index(drop=True, inplace=True)
     return df
 
@@ -345,7 +345,7 @@ if selected_mode == "Dữ liệu Doanh nghiệp":
                     barmode='group', title="Tài Sản & Nợ Phải Trả",
                     labels={'value': "Tỷ đồng", 'variable': "Chỉ tiêu"})
         fig1.for_each_trace(lambda t: t.update(name=t.name.replace(" (Tỷ đồng)", "")))
-        fig1.update_layout(yaxis_title="Tỷ đồng")
+        fig1.update_layout(yaxis_title="Nghìn tỷ đồng")
         st.plotly_chart(fig1)
 
         df_income = stock.finance.income_statement(period='year', lang='vi', dropna=True)
@@ -363,7 +363,7 @@ if selected_mode == "Dữ liệu Doanh nghiệp":
                     barmode='group', title="Doanh Thu & Lợi Nhuận",
                     labels={'value': "Tỷ đồng", 'variable': "Chỉ tiêu"})
         fig2.for_each_trace(lambda t: t.update(name=t.name.replace(" (Tỷ đồng)", "")))
-        fig2.update_layout(yaxis_title="Tỷ đồng")
+        fig2.update_layout(yaxis_title="Nghìn tỷ đồng")
         st.plotly_chart(fig2)
 
         df_cash = stock.finance.cash_flow(period='year', lang='vi', dropna=True)
@@ -383,7 +383,7 @@ if selected_mode == "Dữ liệu Doanh nghiệp":
                     barmode='group', title="Dòng Tiền",
                     labels={'value': "Tỷ đồng", 'variable': "Chỉ tiêu"})
         fig3.for_each_trace(lambda t: t.update(name=t.name.replace(" (Tỷ đồng)", "")))
-        fig3.update_layout(yaxis_title="Tỷ đồng")
+        fig3.update_layout(yaxis_title="Nghìn tỷ đồng")
         st.plotly_chart(fig3)
 
         df_ratio = stock.finance.ratio(period='year', lang='vi', dropna=True)
@@ -405,9 +405,9 @@ if selected_mode == "Dữ liệu Doanh nghiệp":
         st.subheader("📊 ROE & ROA (Nguồn: Vnstock)")
         fig4 = px.bar(df_ratio, x='Năm', y=['ROE (%)', 'ROA (%)'],
                     barmode='group', title="ROE & ROA",
-                    labels={'value': "Tỷ lệ (%)", 'variable': "Chỉ tiêu"})
+                    labels={'value': "Tỷ lệ", 'variable': "Chỉ tiêu"})
         fig4.for_each_trace(lambda t: t.update(name=t.name.replace(" (Tỷ đồng)", "")))
-        fig4.update_layout(yaxis_title="Tỷ lệ (%)")
+        fig4.update_layout(yaxis_title="Tỷ lệ")
         st.plotly_chart(fig4)
 
 elif selected_mode == "Dữ liệu Vĩ mô":
