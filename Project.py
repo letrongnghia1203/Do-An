@@ -335,7 +335,7 @@ if selected_mode == "Dữ liệu Doanh nghiệp":
             st.error("🚨 Không thể tải dữ liệu Bảng Cân Đối Kế Toán!")
             st.stop()
 
-        balance_columns = ['Năm', 'TỔNG CỘNG TÀI SẢN (Tỷ đồng)', 'NỢ PHẢI TRẢ (Tỷ đồng)']
+        balance_columns = ['Năm', 'TỔNG CỘNG TÀI SẢN (đồng)', 'NỢ PHẢI TRẢ (đồng)']
         df_balancesheet = df_balancesheet[balance_columns]
         df_balancesheet['Năm'] = df_balancesheet['Năm'].astype(int)
         df_balancesheet = df_balancesheet.sort_values(by='Năm', ascending=False).head(5)
@@ -353,7 +353,7 @@ if selected_mode == "Dữ liệu Doanh nghiệp":
             st.error("🚨 Không thể tải dữ liệu Báo Cáo Thu Nhập!")
             st.stop()
 
-        income_columns = ['Năm', 'Doanh thu (Tỷ đồng)', 'Lợi nhuận thuần']
+        income_columns = ['Năm', 'Doanh thu (đồng)', 'Lợi nhuận thuần']
         df_income = df_income[income_columns]
         df_income['Năm'] = df_income['Năm'].astype(int)
         df_income = df_income.sort_values(by='Năm', ascending=False).head(5)
