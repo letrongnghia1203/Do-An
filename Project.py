@@ -131,7 +131,7 @@ def create_vnindex_chart(df):
     return fig
 
 def get_stock_data(symbol):
-    stock = Vnstock().stock(symbol=symbol, source='TCBSTCBS')  
+    stock = Vnstock().stock(symbol=symbol, source='TCBS')  
     end_date = datetime.today().strftime('%Y-%m-%d')
     start_date = (datetime.today() - timedelta(days=365*5)).strftime('%Y-%m-%d')  
     df = stock.quote.history(symbol=symbol, start=start_date, end=end_date, interval='1D')
